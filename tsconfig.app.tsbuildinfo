@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/pdfsigner.tsx","./src/components/signaturemodal.tsx","./src/config/documents.ts","./src/pages/homepage.tsx","./src/pages/presetdocpage.tsx","./src/utils/documentloader.ts","./src/utils/pdfexporter.ts"],"version":"5.9.3"}
