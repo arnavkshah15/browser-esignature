@@ -46,7 +46,7 @@ async function docxToPdfBytes(arrayBuffer: ArrayBuffer): Promise<Uint8Array> {
 
     for (let i = 0; i < targets.length; i++) {
       const el = targets[i];
-      // Remove box-shadow from docx-preview wrapper so it doesn't show in PDF
+      // Remove box-shadow/margin from docx-preview page so it doesn't shift capture
       el.style.boxShadow = 'none';
       el.style.margin = '0';
 
@@ -54,25 +54,37 @@ async function docxToPdfBytes(arrayBuffer: ArrayBuffer): Promise<Uint8Array> {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
+        width: el.offsetWidth,
+        windowWidth: el.offsetWidth,
       });
 
-      // Convert px (96 DPI) to PDF points (72 DPI)
-      const ptWidth = (el.offsetWidth || 794) * 0.75;
-      const ptHeight = (canvas.height * ptWidth) / canvas.width;
-      const orientation = ptWidth > ptHeight ? 'landscape' : 'portrait';
-
-      if (!pdf) {
-        pdf = new jsPDF({
-          unit: 'pt',
-          format: [ptWidth, ptHeight],
-          orientation,
-        });
-      } else {
-        pdf.addPage([ptWidth, ptHeight], orientation);
-      }
+      // Use exact page dimensions from docx-preview's section styles (in pt), fallback to A4
+      const parsedW = parseFloat(el.style.width);
+      const parsedH = parseFloat(el.style.minHeight);
+      const ptWidth = parsedW > 0 ? parsedW : (el.offsetWidth || 794) * 0.75;
+      const pagePtHeight = parsedH > 0 ? parsedH : (ptWidth * 841.89) / 595.28;
+      const totalImgHeight = (canvas.height * ptWidth) / canvas.width;
+      const orientation = ptWidth > pagePtHeight ? 'landscape' : 'portrait';
 
       const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', 0, 0, ptWidth, ptHeight);
+      let heightLeft = totalImgHeight;
+      let yOffset = 0;
+
+      while (heightLeft > 2) {
+        if (!pdf) {
+          pdf = new jsPDF({
+            unit: 'pt',
+            format: [ptWidth, pagePtHeight],
+            orientation,
+          });
+        } else {
+          pdf.addPage([ptWidth, pagePtHeight], orientation);
+        }
+
+        pdf.addImage(imgData, 'PNG', 0, yOffset, ptWidth, totalImgHeight);
+        yOffset -= pagePtHeight;
+        heightLeft -= pagePtHeight;
+      }
     }
 
     if (!pdf) {
