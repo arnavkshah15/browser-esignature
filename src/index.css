@@ -446,18 +446,24 @@ select {
 /* Placed item */
 .placed-item {
   position: absolute;
-  border: 2px dashed var(--primary);
-  background: rgba(79, 70, 229, 0.05);
+  border: 2px solid transparent;
+  background: transparent;
   border-radius: 4px;
   touch-action: none;
   cursor: move;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: border-color 0.12s, background-color 0.12s;
+}
+
+.placed-item:hover {
+  border: 2px dashed rgba(79, 70, 229, 0.45);
 }
 
 .placed-item.selected {
-  border-style: solid;
+  border: 2px solid var(--primary);
+  background: rgba(79, 70, 229, 0.05);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
 }
 

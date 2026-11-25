@@ -66,7 +66,7 @@ async function docxToPdfBytes(arrayBuffer: ArrayBuffer): Promise<Uint8Array> {
       const totalImgHeight = (canvas.height * ptWidth) / canvas.width;
       const orientation = ptWidth > pagePtHeight ? 'landscape' : 'portrait';
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       let heightLeft = totalImgHeight;
       let yOffset = 0;
 
@@ -81,7 +81,7 @@ async function docxToPdfBytes(arrayBuffer: ArrayBuffer): Promise<Uint8Array> {
           pdf.addPage([ptWidth, pagePtHeight], orientation);
         }
 
-        pdf.addImage(imgData, 'PNG', 0, yOffset, ptWidth, totalImgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, yOffset, ptWidth, totalImgHeight);
         yOffset -= pagePtHeight;
         heightLeft -= pagePtHeight;
       }
