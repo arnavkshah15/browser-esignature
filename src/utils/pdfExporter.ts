@@ -15,7 +15,7 @@ export async function exportSignedPdf(
   originalPdfBytes: Uint8Array,
   placements: DocumentPlacement[]
 ): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(originalPdfBytes);
+  const pdfDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: true });
   const pages = pdfDoc.getPages();
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 

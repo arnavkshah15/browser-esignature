@@ -141,7 +141,11 @@ export const PdfSigner: React.FC<PdfSignerProps> = ({
         if (!ctx) continue;
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({
+          canvasContext: ctx,
+          viewport,
+          annotationMode: pdfjsLib.AnnotationMode.ENABLE_STORAGE,
+        }).promise;
       }
     };
 

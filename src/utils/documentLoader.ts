@@ -1,4 +1,4 @@
-import mammoth from 'mammoth';
+import { renderAsync } from 'docx-preview';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
@@ -16,8 +16,76 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;');
 }
 
+async function docxToPdfBytes(arrayBuffer: ArrayBuffer): Promise<Uint8Array> {
+  const host = document.createElement('div');
+  host.style.position = 'fixed';
+  host.style.left = '-10000px';
+  host.style.top = '0';
+  host.style.width = '1200px';
+  host.style.background = '#ffffff';
+  document.body.appendChild(host);
+
+  try {
+    await renderAsync(arrayBuffer, host, undefined, {
+      className: 'docx',
+      inWrapper: true,
+      ignoreWidth: false,
+      ignoreHeight: false,
+      ignoreFonts: false,
+      breakPages: true,
+      useBase64URL: true,
+    });
+
+    // Wait a tick for embedded images/fonts to finish layout
+    await new Promise((r) => setTimeout(r, 150));
+
+    const sections = Array.from(host.querySelectorAll('section.docx')) as HTMLElement[];
+    const targets = sections.length > 0 ? sections : [host];
+
+    let pdf: jsPDF | null = null;
+
+    for (let i = 0; i < targets.length; i++) {
+      const el = targets[i];
+      // Remove box-shadow from docx-preview wrapper so it doesn't show in PDF
+      el.style.boxShadow = 'none';
+      el.style.margin = '0';
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      // Convert px (96 DPI) to PDF points (72 DPI)
+      const ptWidth = (el.offsetWidth || 794) * 0.75;
+      const ptHeight = (canvas.height * ptWidth) / canvas.width;
+      const orientation = ptWidth > ptHeight ? 'landscape' : 'portrait';
+
+      if (!pdf) {
+        pdf = new jsPDF({
+          unit: 'pt',
+          format: [ptWidth, ptHeight],
+          orientation,
+        });
+      } else {
+        pdf.addPage([ptWidth, ptHeight], orientation);
+      }
+
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, ptWidth, ptHeight);
+    }
+
+    if (!pdf) {
+      throw new Error('Could not render Word document.');
+    }
+
+    return new Uint8Array(pdf.output('arraybuffer'));
+  } finally {
+    document.body.removeChild(host);
+  }
+}
+
 async function htmlToPdfBytes(htmlContent: string): Promise<Uint8Array> {
-  // Render off-screen at A4 width (794px at 96 DPI) for clean, consistent pagination
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.left = '-10000px';
@@ -29,18 +97,7 @@ async function htmlToPdfBytes(htmlContent: string): Promise<Uint8Array> {
   container.style.fontFamily = "'Inter', Arial, sans-serif";
   container.style.fontSize = '14px';
   container.style.lineHeight = '1.6';
-  container.innerHTML = `
-    <style>
-      .docx-render h1 { font-size: 22px; margin: 0 0 12px; }
-      .docx-render h2 { font-size: 18px; margin: 18px 0 8px; }
-      .docx-render h3 { font-size: 15px; margin: 14px 0 6px; }
-      .docx-render p { margin: 0 0 10px; }
-      .docx-render table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-      .docx-render td, .docx-render th { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
-      .docx-render ul, .docx-render ol { margin: 0 0 10px; padding-left: 22px; }
-    </style>
-    <div class="docx-render">${htmlContent}</div>
-  `;
+  container.innerHTML = htmlContent;
   document.body.appendChild(container);
 
   try {
@@ -53,7 +110,6 @@ async function htmlToPdfBytes(htmlContent: string): Promise<Uint8Array> {
     const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-
     const imgWidth = pageWidth;
     const totalImgHeight = (canvas.height * imgWidth) / canvas.width;
 
@@ -71,8 +127,7 @@ async function htmlToPdfBytes(htmlContent: string): Promise<Uint8Array> {
       heightLeft -= pageHeight;
     }
 
-    const arrayBuffer = pdf.output('arraybuffer');
-    return new Uint8Array(arrayBuffer);
+    return new Uint8Array(pdf.output('arraybuffer'));
   } finally {
     document.body.removeChild(container);
   }
@@ -93,8 +148,7 @@ export async function loadPdfBytesFromFile(file: File): Promise<LoadedDocument> 
 
   if (lower.endsWith('.docx')) {
     const buf = await file.arrayBuffer();
-    const result = await mammoth.convertToHtml({ arrayBuffer: buf });
-    const bytes = await htmlToPdfBytes(result.value || '<p>(Empty document)</p>');
+    const bytes = await docxToPdfBytes(buf);
     return {
       bytes,
       fileName: `${baseName}.pdf`,
@@ -112,7 +166,7 @@ export async function loadPdfBytesFromFile(file: File): Promise<LoadedDocument> 
     const text = await file.text();
     const html = text
       .split(/\r?\n/)
-      .map((line) => `<p>${escapeHtml(line) || '&nbsp;'}</p>`)
+      .map((line) => `<p style="margin:0 0 8px;">${escapeHtml(line) || '&nbsp;'}</p>`)
       .join('');
     const bytes = await htmlToPdfBytes(html);
     return {
