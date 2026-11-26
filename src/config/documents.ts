@@ -24,6 +24,13 @@ export const PRESET_DOCUMENTS: PresetDocument[] = [
     category: 'LOR',
   },
   {
+    slug: 'drvidhya',
+    title: 'Letter of Recommendation — Dr. Vidhya R',
+    description: 'Review and sign the Letter of Recommendation for Arnav Shah.',
+    fileUrl: './docs/lor-dr-vidhya-r.pdf',
+    category: 'LOR',
+  },
+  {
     slug: 'sample-agreement',
     title: 'Sample Service Agreement',
     description:
