@@ -10,6 +10,13 @@ import { PresetDocument } from '../types';
  */
 export const PRESET_DOCUMENTS: PresetDocument[] = [
   {
+    slug: 'drbprakash',
+    title: 'Letter of Recommendation — Dr. B. Prakash',
+    description: 'Review and sign the Letter of Recommendation for Arnav Shah.',
+    fileUrl: './docs/lor-dr-b-prakash.pdf',
+    category: 'LOR',
+  },
+  {
     slug: 'sample-agreement',
     title: 'Sample Service Agreement',
     description:

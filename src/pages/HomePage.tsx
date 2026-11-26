@@ -125,7 +125,7 @@ export const HomePage: React.FC = () => {
                   <h3>{doc.title}</h3>
                   <p>{doc.description}</p>
                 </div>
-                <Link to={`/doc/${doc.slug}`} className="btn btn-secondary">
+                <Link to={`/${doc.slug}`} className="btn btn-secondary">
                   Open &amp; Sign <ArrowRight size={15} />
                 </Link>
               </div>

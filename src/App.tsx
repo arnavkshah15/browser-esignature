@@ -36,6 +36,7 @@ export const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/doc/:slug" element={<PresetDocPage />} />
+        <Route path="/:slug" element={<PresetDocPage />} />
       </Routes>
     </HashRouter>
   );
